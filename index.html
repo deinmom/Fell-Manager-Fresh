@@ -1,524 +1,430 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8"/>
   <title>Fellmanager</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <style>
-    body { 
-      max-width: 700px; 
-      margin: 2rem auto; 
-      font-family: sans-serif; 
-    }
-    .header { 
-      font-size: 24px; 
-      font-weight: bold; 
-      text-align: center; 
-      margin-bottom: 1rem; 
-    }
-    /* Einfaches Hauptmenü – Hersteller auswählen */
-    #mainMenu,
-    #subMenu,
-    #filterMenu {
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-      margin-bottom: 1rem;
-    }
-    .menu-button {
-      padding: 0.75rem 1rem;
-      font-size: 1rem;
-      border: 1px solid #333;
-      border-radius: 5px;
-      background: #f5f5f5;
-      cursor: pointer;
-    }
-    .menu-button:hover {
-      background: #e0e0e0;
-    }
-    /* „Zurück“-Button */
-    .back-button {
-      margin-top: 1rem;
-      padding: 0.5rem 1rem;
-      font-size: 0.9rem;
-      border: none;
-      background: #ccc;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-
-    /* Filter-Menü */
-    #filterMenu {
-      display: none;
-      flex-wrap: wrap;
-      justify-content: center;
-    }
-    #filterMenu .filter-button {
-      margin: 0.25rem;
-      padding: 0.5rem 0.75rem;
-      font-size: 0.9rem;
-      border: 1px solid #666;
-      border-radius: 5px;
-      background: #fafafa;
-      cursor: pointer;
-    }
-    #filterMenu .filter-button.active {
-      background: #666;
-      color: white;
-    }
-
-    /* Karte: Fell-Eintrag */
-    .card { 
-      border: 1px solid #ccc; 
-      border-radius: 1rem; 
-      padding: 1rem; 
-      margin-bottom: 1rem; 
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1); 
-    }
-    .title { 
-      font-size: 18px; 
-      font-weight: bold; 
-    }
-    .wiki  { 
-      font-size: 14px; 
-      color: #555; 
-      margin: 0.5rem 0; 
-    }
-    .controls { 
-      display: flex; 
-      justify-content: space-between; 
-      align-items: center; 
-      margin-top: 0.5rem;
-    }
-    .controls button { 
-      border: none; 
-      color: white; 
-      padding: 0.5rem 1rem; 
-      border-radius: 5px; 
-      cursor: pointer; 
-      font-size: 1rem; 
-    }
-    .minus { 
-      background: #e53e3e; 
-      margin-right: 0.5rem; 
-    }
-    .plus  { 
-      background: #38a169; 
-    }
-
-    /* Admin-Menü */
-    #adminToggle {
-      margin: 1rem 0;
-      text-align: center;
-    }
-    #adminToggle button {
-      padding: 0.5rem 1rem;
-      font-size: 1rem;
-      border: 1px solid #444;
-      border-radius: 5px;
-      background: #fafafa;
-      cursor: pointer;
-    }
-    #adminToggle button:hover {
-      background: #eee;
-    }
-    #adminMenu {
-      display: none;
-      margin-bottom: 1rem;
-    }
-    #adminMenu button {
-      margin-right: 0.5rem;
-      padding: 0.5rem 1rem;
-      font-size: 1rem;
-      border: 1px solid #333;
-      border-radius: 5px;
-      background: #f0f0f0;
-      cursor: pointer;
-    }
-    #adminMenu button:hover {
-      background: #e0e0e0;
-    }
+    body { margin:0; font-family:sans-serif; background:#f5f5f5; }
+    header { background:#3182ce; color:white; padding:1rem; text-align:center; font-size:1.5rem; position:sticky; top:0; }
+    #toolbar { padding:1rem; display:flex; flex-wrap:wrap; gap:.5rem; background:#fff; justify-content:center; }
+    .btn { padding:1rem; border:none; border-radius:.5rem; cursor:pointer; font-size:1.1rem; min-width:3rem; margin:.25rem; }
+    .btn-home    { background:#718096; color:white; }
+    .btn-admin   { background:#3182ce; color:white; }
+    .btn-logout  { background:#e53e3e; color:white; }
+    .btn-settings{ background:#4c51bf; color:white; }
+    .btn-import  { background:#d69e2e; color:white; }
+    .btn-export  { background:#2f855a; color:white; }
+    .btn-filter  { background:#4a5568; color:white; }
+    .btn-history { background:#805ad5; color:white; }
+    #settingsPanel,#filterPanel,#historyPanel{background:#fff;margin:1rem;padding:1rem;border-radius:.5rem;display:none;}
+    #filterPanel{text-align:center;} #filterPanel .section{margin-top:1rem;text-align:left;font-weight:bold;}
+    #menu,#submenu,#cards{padding:1rem;}
+    .card{background:#fff;border-radius:1rem;padding:1.5rem;margin:.5rem 1rem;box-shadow:0 1px 3px rgba(0,0,0,.1);}
+    .title{font-weight:bold;font-size:1.2rem;margin-bottom:.5rem;} 
+    .wiki{font-size:.95rem;color:#555;margin:.5rem 0;}
+    .controls{display:flex;justify-content:center;align-items:center;gap:1rem;margin-top:.75rem;}
+    .controls button{border:none;padding:.8rem 1.2rem;border-radius:.5rem;color:white;cursor:pointer;font-size:1.1rem;min-width:3rem;}
+    .minus{background:#e53e3e;} 
+    .plus{background:#38a169;}
+    input.stock-input,input.tol-input{width:5rem;padding:.5rem;font-size:1rem;margin-right:.5rem;border:1px solid #ccc;border-radius:.25rem;}
+    select#historySelect{width:100%;padding:.8rem;font-size:1rem;margin-bottom:.5rem;} 
+    #historyList div{padding:.5rem 0;font-size:1rem;}
   </style>
 </head>
 <body>
-  <div class="header">Fellmanager</div>
-
-  <!-- Admin-Login/Toggle -->
-  <div id="adminToggle">
-    <button id="btnShowAdmin">Admin-Modus</button>
+  <header>Fellmanager</header>
+  <div id="toolbar">
+    <button id="btnHome"     class="btn btn-home">Home</button>
+    <button id="btnAdmin"    class="btn btn-admin">Admin Modus</button>
+    <button id="btnLogout"   class="btn btn-logout"  style="display:none;">Logout</button>
+    <button id="btnSettings" class="btn btn-settings" style="display:none;">Einstellungen</button>
+    <button id="btnImport"   class="btn btn-import"  style="display:none;">Import</button>
+    <button id="btnExport"   class="btn btn-export">Export</button>
+    <button id="btnFilter"   class="btn btn-filter">Filter</button>
+    <button id="btnHistory"  class="btn btn-history">Historie</button>
+    <input type="file" id="fileInput" accept=".csv" style="display:none;"/>
   </div>
 
-  <!-- Admin-Menü (sichtbar im Admin-Modus) -->
-  <div id="adminMenu">
-    <button id="btnExportCSV">Export als CSV</button>
-    <input type="file" id="fileInput" accept=".csv" style="display:none;">
-    <button id="btnImportCSV">Import CSV</button>
-    <!-- Globale Warnschwelle einstellen -->
-    <button id="btnSettings">Einstellungen</button>
+  <div id="settingsPanel">
+    <h2>Einstellungen</h2>
+    <label>Warnschwelle: <input type="number" id="warnschwelle"/></label><br/>
+    <label>Globale Toleranz: <input type="number" id="tolerance"/></label><br/>
+    <label>Warn-Mail an: <input type="email" id="emailTo" style="width:100%;"/></label><br/>
+    <button id="saveSettings" class="btn">Speichern</button> <span id="saveStatus"></span>
   </div>
 
-  <!-- Einstellungen (Admin) -->
-  <div id="settingsMenu" style="display:none; margin-bottom:1rem;">
-    <label>Warnschwelle: 
-      <input type="number" id="inpWarn" style="width:4rem;" />
-    </label>
-    &nbsp;
-    <label>Toleranz: 
-      <input type="number" id="inpTol" style="width:4rem;" />
-    </label>
-    &nbsp;
-    <label>E-Mail an: 
-      <input type="text" id="inpMail" style="width:10rem;" />
-    </label>
-    &nbsp;
-    <button id="btnSaveSettings">Speichern</button>
-    <button id="btnCloseSettings" class="back-button">Zurück</button>
+  <div id="filterPanel">
+    <h2>Filter</h2>
+    <div class="section">Typ</div><div id="filterTyp"></div>
+    <div class="section">Hersteller</div><div id="filterHersteller"></div>
+    <div class="section">Serie</div><div id="filterSerie"></div>
+    <button id="btnClearFilters" class="btn">Zurücksetzen</button>
   </div>
 
-  <!-- Navigation: Hersteller auswählen -->
-  <div id="mainMenu"></div>
+  <div id="historyPanel">
+    <h2>Historie</h2>
+    <select id="historySelect"><option value="">– Fell wählen –</option></select>
+    <div id="historyList">Keine Historie.</div>
+  </div>
 
-  <!-- Submenü: Serien oder Typen unter einem Hersteller -->
-  <div id="subMenu" style="display:none;"></div>
+  <div id="menu"></div>
+  <div id="submenu" style="display:none;"></div>
+  <div id="cards"   style="display:none;"></div>
 
-  <!-- Filter-Menü (Typ, Hersteller, Serie) -->
-  <div id="filterMenu"></div>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+  document.addEventListener('DOMContentLoaded', async () => {
+    const SUPABASE_URL = 'https://owrfgjypnemsxonmbrpj.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im93cmZnanlwbmVtc3hvbm1icnBqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDczMTUyOTgsImV4cCI6MjA2Mjg5MTI5OH0.X1PymyDZqNe_Plmao8U6gdqFKP70VrFtuZTesgyZMwg';
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const ADMIN = 'Admin';
 
-  <!-- Container für die Kartenliste -->
-  <div id="container"></div>
+    const btnHome     = document.getElementById('btnHome'),
+          btnAdmin    = document.getElementById('btnAdmin'),
+          btnLogout   = document.getElementById('btnLogout'),
+          btnSettings = document.getElementById('btnSettings'),
+          btnImport   = document.getElementById('btnImport'),
+          btnExport   = document.getElementById('btnExport'),
+          btnFilter   = document.getElementById('btnFilter'),
+          btnHistory  = document.getElementById('btnHistory'),
+          fileInput   = document.getElementById('fileInput'),
+          setPanel    = document.getElementById('settingsPanel'),
+          filtPanel   = document.getElementById('filterPanel'),
+          histPanel   = document.getElementById('historyPanel'),
+          inpWarn     = document.getElementById('warnschwelle'),
+          inpTol      = document.getElementById('tolerance'),
+          inpMail     = document.getElementById('emailTo'),
+          btnSave     = document.getElementById('saveSettings'),
+          spanStat    = document.getElementById('saveStatus'),
+          filtTyp     = document.getElementById('filterTyp'),
+          filtHerst   = document.getElementById('filterHersteller'),
+          filtSerie   = document.getElementById('filterSerie'),
+          btnClear    = document.getElementById('btnClearFilters'),
+          histSelect  = document.getElementById('historySelect'),
+          histList    = document.getElementById('historyList'),
+          menu        = document.getElementById('menu'),
+          submenu     = document.getElementById('submenu'),
+          cards       = document.getElementById('cards');
 
-  <!-- JavaScript als ES-Modul -->
-  <script type="module">
-    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+    let adminMode=false, allData=[], filters={typ:null,hersteller:null,serie:null}, curMan, curField, curValue;
 
-    // Supabase-Zugangsdaten
-    const SUPABASE_URL     = "https://owrfgjypnemsxonmbrpj.supabase.co";
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im93cmZnanlwbmVtc3hvbm1icnBqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDczMTUyOTgsImV4cCI6MjA2Mjg5MTI5OH0.X1PymyDZqNe_Plmao8U6gdqFKP70VrFtuZTesgyZMwg";
-    const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-    // DOM-Elemente
-    const adminToggle = document.getElementById("adminToggle");
-    const btnShowAdmin = document.getElementById("btnShowAdmin");
-    const adminMenu = document.getElementById("adminMenu");
-    const btnExportCSV = document.getElementById("btnExportCSV");
-    const btnImportCSV = document.getElementById("btnImportCSV");
-    const fileInput = document.getElementById("fileInput");
-    const btnSettings = document.getElementById("btnSettings");
-    const settingsMenu = document.getElementById("settingsMenu");
-    const inpWarn = document.getElementById("inpWarn");
-    const inpTol = document.getElementById("inpTol");
-    const inpMail = document.getElementById("inpMail");
-    const btnSaveSettings = document.getElementById("btnSaveSettings");
-    const btnCloseSettings = document.getElementById("btnCloseSettings");
-
-    const mainMenu = document.getElementById("mainMenu");
-    const subMenu = document.getElementById("subMenu");
-    const filterMenu = document.getElementById("filterMenu");
-    const container = document.getElementById("container");
-
-    let allData = [];
-    let isAdmin = false;
-    let settings = {
-      warnschwelle: 3,
-      tolerance: 0,
-      email_to: ""
-    };
-
-    // 1) Admin-Modus umschalten
-    btnShowAdmin.onclick = () => {
-      isAdmin = !isAdmin;
-      adminMenu.style.display = isAdmin ? "flex" : "none";
-      settingsMenu.style.display = "none";
-      subMenu.style.display = "none";
-      filterMenu.style.display = "none";
-      container.style.display = "none";
-      mainMenu.style.display = isAdmin ? "none" : "flex";
-      btnShowAdmin.textContent = isAdmin ? "Standard-Modus" : "Admin-Modus";
-    };
-
-    // 2) Einstellungen öffnen
-    btnSettings.onclick = async () => {
-      const { data, error } = await supabaseClient
-        .from("settings")
-        .select("warnschwelle,tolerance,email_to")
-        .eq("id", "global")
-        .single();
-      if (!error && data) {
-        settings = data;
+    // Einstellungen laden
+    async function loadSettings(){
+      const { data, error } = await sb.from('settings')
+        .select('warnschwelle,tolerance,email_to').eq('id','global').single();
+      if(!error && data){
+        inpWarn.value = data.warnschwelle;
+        inpTol.value  = data.tolerance;
+        inpMail.value = data.email_to;
       }
-      inpWarn.value = settings.warnschwelle;
-      inpTol.value = settings.tolerance;
-      inpMail.value = settings.email_to;
-      settingsMenu.style.display = "block";
+    }
+    btnSave.onclick = async ()=>{
+      spanStat.textContent='…';
+      await sb.from('settings').update({
+        warnschwelle: parseInt(inpWarn.value,10),
+        tolerance:    parseInt(inpTol.value,10),
+        email_to:     inpMail.value
+      }).eq('id','global');
+      spanStat.textContent='✔️';
     };
 
-    // 3) Einstellungen speichern
-    btnSaveSettings.onclick = async () => {
-      const newWarn = parseInt(inpWarn.value, 10) || 0;
-      const newTol = parseInt(inpTol.value, 10) || 0;
-      const newMail = inpMail.value.trim();
-      await supabaseClient
-        .from("settings")
-        .update({
-          warnschwelle: newWarn,
-          tolerance: newTol,
-          email_to: newMail
-        })
-        .eq("id", "global");
-      settingsMenu.style.display = "none";
-    };
-
-    // 4) Einstellungen schließen (Zurück)
-    btnCloseSettings.onclick = () => {
-      settingsMenu.style.display = "none";
-    };
-
-    // 5) CSV-Export (Admin)
-    btnExportCSV.onclick = () => {
-      if (!allData.length) return;
-      const rows = [...allData].sort((a, b) => a.id.localeCompare(b.id));
-      const header = ["id","hersteller","serie","groesse","bestand","warnschwelle","wiki","typ_a","typ_b"];
-      const csvRows = [header.join(",")];
-      rows.forEach(f => {
-        const values = [
-          f.id,
-          f.hersteller,
-          f.serie,
-          f.groesse,
-          f.bestand,
-          f.warnschwelle,
-          `"${f.wiki.replace(/"/g,'""')}"`,
-          f.typ_a,
-          f.typ_b
-        ];
-        csvRows.push(values.join(","));
-      });
-      const csvString = csvRows.join("\n");
-      const blob = new Blob([csvString], { type: "text/csv;charset=utf-8;" });
-      const url = URL.createObjectURL(blob);
-      const now = new Date();
-      const dd = String(now.getDate()).padStart(2,'0');
-      const mm = String(now.getMonth()+1).padStart(2,'0');
-      const yy = now.getFullYear();
-      const hh = String(now.getHours()).padStart(2,'0');
-      const min= String(now.getMinutes()).padStart(2,'0');
-      const filename = `Fellbestand_${dd}.${mm}.${yy}_${hh}-${min}.csv`;
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    };
-
-    // 6) CSV-Import (Admin)
-    btnImportCSV.onclick = () => fileInput.click();
-    fileInput.onchange = event => {
-      const file = event.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = async function(e) {
-        const text = e.target.result;
-        const lines = text.split(/\r?\n/).filter(l => l.trim());
-        const header = lines.shift().split(",");
-        const idIdx = header.indexOf("id");
-        const bestandIdx = header.indexOf("bestand");
-        for (let line of lines) {
-          const cols = line.split(",");
-          const id = cols[idIdx];
-          const bestand = parseInt(cols[bestandIdx],10);
-          if (!id) continue;
-          await supabaseClient
-            .from("felle")
-            .update({ bestand })
-            .eq("id", id);
-        }
-        loadFelle();
-      };
-      reader.readAsText(file);
-    };
-
-    // 7) Hauptmenü (Hersteller-Liste) anzeigen
-    async function loadMainMenu() {
-      // Distinct-Abfrage für Hersteller
-      const { data, error } = await supabaseClient
-        .from("felle")
-        .select("hersteller", { distinct: true });
-
-      if (error) {
-        console.error("Fehler beim Laden der Hersteller:", error);
+    // Daten laden
+    async function loadData(){
+      const { data, error, status, statusText } = await sb.from('felle')
+        .select('*').order('hersteller',{ascending:true});
+      if(error){
+        console.error(`(${status} ${statusText})`, error);
+        menu.innerHTML = `<p style="color:red">Fehler beim Laden: ${error.message}</p>`;
         return;
       }
+      allData = data;
+    }
 
-      mainMenu.innerHTML = "";
-      data
-        .map(entry => entry.hersteller)
-        .sort((a, b) => a.localeCompare(b))
-        .forEach(herstellerName => {
-          const btn = document.createElement("button");
-          btn.className = "menu-button";
-          btn.textContent = herstellerName;
-          btn.onclick = () => loadSubMenu(herstellerName);
-          mainMenu.append(btn);
+    await loadSettings();
+    await loadData();
+
+    // Home-Button
+    btnHome.onclick = ()=>{
+      filters = {typ:null,hersteller:null,serie:null};
+      setPanel.style.display='none';
+      filtPanel.style.display='none';
+      histPanel.style.display='none';
+      submenu.style.display='none';
+      cards.style.display='none';
+      menu.style.display='';
+      btnLogout.style.display   = adminMode?'':'none';
+      btnSettings.style.display = adminMode?'':'none';
+      btnImport.style.display   = adminMode?'':'none';
+      fileInput.style.display   = adminMode?'':'none';
+      renderMenu();
+    };
+
+    // Admin-Modus
+    btnAdmin.onclick = ()=>{
+      const pw = prompt('Admin-Passwort:');
+      if(pw===ADMIN){
+        adminMode=true;
+        btnLogout.style.display   ='';
+        btnSettings.style.display ='';
+        btnImport.style.display   ='';
+        fileInput.style.display   ='';
+        btnAdmin.style.display    ='none';
+      }
+    };
+    btnLogout.onclick = ()=>{
+      adminMode=false;
+      btnAdmin.style.display    ='';
+      btnLogout.style.display   ='none';
+      btnSettings.style.display ='none';
+      btnImport.style.display   ='none';
+      fileInput.style.display   ='none';
+      filters = {typ:null,hersteller:null,serie:null};
+      renderMenu();
+    };
+
+    // Einstellungen ein-/ausblenden
+    btnSettings.onclick = ()=> setPanel.style.display = setPanel.style.display==='block'?'none':'block';
+
+    // CSV Import
+    btnImport.onclick = ()=> fileInput.click();
+    fileInput.onchange = async ()=>{
+      const text  = await fileInput.files[0].text();
+      const lines = text.split(/\r?\n/).filter(l=>l.trim());
+      const sep   = lines[0].includes(';')?';':',';
+      const [hdr,...rows] = lines.map(l=>l.split(sep).map(c=>c.trim()));
+      const idx = {
+        id: hdr.indexOf('id'),
+        her:hdr.indexOf('hersteller'),
+        ser:hdr.indexOf('serie'),
+        gro:hdr.indexOf('groesse'),
+        be: hdr.indexOf('bestand'),
+        wi: hdr.indexOf('wiki'),
+        a:  hdr.indexOf('typ_a'),
+        b:  hdr.indexOf('typ_b')
+      };
+      if([idx.id,idx.her,idx.ser,idx.gro,idx.be].some(i=>i<0)){
+        return alert('CSV braucht id, hersteller, serie, groesse, bestand.');
+      }
+      const map = {};
+      rows.forEach(cols=>{
+        const idVal = cols[idx.id], best = parseInt(cols[idx.be],10);
+        if(!idVal||isNaN(best)) return;
+        map[idVal] = {
+          id: idVal,
+          hersteller: cols[idx.her],
+          serie:      cols[idx.ser],
+          groesse:    cols[idx.gro],
+          bestand:    best,
+          ...(idx.wi>=0?{wiki:cols[idx.wi]}:{}),
+          ...(idx.a>=0?{typ_a:cols[idx.a]}:{}),
+          ...(idx.b>=0?{typ_b:cols[idx.b]}:{})
+        };
+      });
+      const up = Object.values(map);
+      const { error } = await sb.from('felle').upsert(up,{onConflict:'id'});
+      if(error){
+        console.error('Import-Fehler:',error);
+        return alert('Import-Fehler: '+error.message);
+      }
+      await loadData();
+      renderMenu();
+      alert('Import abgeschlossen: '+up.length+' Datensätze.');
+    };
+
+    // CSV Export
+    btnExport.onclick = ()=>{
+      if(!allData.length) return alert('Keine Daten.');
+      const date=new Date().toISOString().split('T')[0],
+            fn=`Fellbestand_${date}.csv`,
+            sep=';', keys=Object.keys(allData[0]);
+      let csv=keys.join(sep)+'\n';
+      allData.forEach(f=>csv+=keys.map(k=>f[k]==null?'':String(f[k]).replace(/"/g,'""')).join(sep)+'\n');
+      const blob=new Blob([csv],{type:'text/csv'}),
+            url=(window.URL||window.webkitURL).createObjectURL(blob),
+            a=document.createElement('a');
+      a.href=url; a.download=fn; document.body.append(a); a.click(); a.remove();
+      (window.URL||window.webkitURL).revokeObjectURL(url);
+    };
+
+    // Filter öffnen/schließen
+    btnFilter.onclick = ()=>{ filtPanel.style.display=filtPanel.style.display==='block'?'none':'block'; buildFilters(); };
+
+    // Filter zurücksetzen
+    document.getElementById('btnClearFilters').onclick = ()=>{
+      filters = {typ:null,hersteller:null,serie:null};
+      buildFilters(); renderMenu();
+    };
+
+    // Filter aufbauen
+    function buildFilters(){
+      [['typ',filtTyp,['typ_a','typ_b']],
+       ['hersteller',filtHerst,['hersteller']],
+       ['serie',filtSerie,['serie']]]
+      .forEach(([key,cont,fields])=>{
+        cont.innerHTML='';
+        const vals = Array.from(new Set(
+          allData.filter(f=>!filters.hersteller||f.hersteller===filters.hersteller)
+                 .flatMap(f=>fields.flatMap(fld=>Array.isArray(f[fld])?f[fld]:[f[fld]]))
+                 .filter(Boolean)
+        )).sort();
+        vals.forEach(v=>{
+          const b=document.createElement('button');
+          b.textContent=v; b.className='btn';
+          if(filters[key]===v) b.classList.add('btn-admin');
+          b.onclick=()=>{
+            filters[key] = filters[key]===v?null:v;
+            buildFilters(); renderMenu();
+          };
+          cont.appendChild(b);
+        });
+      });
+    }
+
+    // Historie öffnen/schließen
+    btnHistory.onclick = ()=>{
+      const show = histPanel.style.display!=='block';
+      histPanel.style.display = show?'block':'none';
+      if(show){
+        histList.textContent='Lade…';
+        histSelect.innerHTML = '<option value="">– Fell wählen –</option>';
+        allData.forEach(f=> histSelect.add(new Option(`${f.hersteller}–${f.serie} ${f.groesse}`, f.id)));
+      }
+    };
+
+    // Historie laden
+    histSelect.onchange = async ()=>{
+      const idv = histSelect.value;
+      if(!idv) return histList.textContent='Keine Historie.';
+      const { data } = await sb.from('history')
+        .select('delta,timestamp')
+        .eq('fell_id', idv)
+        .order('timestamp',{ascending:false});
+      histList.innerHTML = data
+        .map(h=>`<div>${new Date(h.timestamp).toLocaleString()}: ${h.delta>0?'+':''}${h.delta}</div>`)
+        .join('') || 'Keine Einträge.';
+    };
+
+    // Hauptmenü rendern
+    function renderMenu(){
+      menu.innerHTML = '<h2>Hersteller wählen</h2>';
+      submenu.style.display = 'none';
+      cards.style.display   = 'none';
+      buildFilters();
+      Array.from(new Set(allData.map(f=>f.hersteller)))
+        .filter(h=>!filters.hersteller||h===filters.hersteller)
+        .sort()
+        .forEach(m=>{
+          const b=document.createElement('button');
+          b.textContent = m;
+          b.className   = 'btn';
+          b.onclick     = ()=> showSub(m);
+          menu.appendChild(b);
+        });
+    }
+
+    // Untermenü “Nach Serie/Typ”
+    function showSub(man){
+      curMan = man;
+      menu.style.display    = 'none';
+      submenu.style.display = '';
+      cards.style.display   = 'none';
+      submenu.innerHTML = ''
+        + '<button class="btn btn-logout">← Zurück</button><br/>'
+        + '<button class="btn" id="bSer">Nach Serie</button>'
+        + '<button class="btn" id="bTyp" style="margin-left:.5rem">Nach Typ</button>';
+      document.querySelector('#submenu .btn-logout').onclick = () => {
+        filters.hersteller = null;
+        renderMenu();
+      };
+      document.getElementById('bSer').onclick = ()=> showList('serie');
+      document.getElementById('bTyp').onclick = ()=> showList('typ');
+    }
+
+    // Liste der Serien oder Typen
+    function showList(field){
+      curField = field;
+      submenu.style.display = 'none';
+      cards.style.display   = '';
+      cards.innerHTML       = '';
+      const back = document.createElement('button');
+      back.textContent = '← Zurück';
+      back.className   = 'btn btn-logout';
+      back.onclick     = ()=> showSub(curMan);
+      cards.appendChild(back);
+
+      const vals = Array.from(new Set(
+        allData.filter(f=>f.hersteller===curMan)
+               .flatMap(f=> field==='serie'
+                 ? [f.serie]
+                 : [f.typ_a,f.typ_b].filter(Boolean)
+               )
+      )).sort();
+
+      vals.forEach(v=>{
+        const b=document.createElement('button');
+        b.textContent=v;
+        b.className='btn';
+        b.onclick=()=> renderCards(field,v);
+        cards.appendChild(b);
+      });
+    }
+
+    // Karten mit Fellen (sortiert nach Größe)
+    function renderCards(field,val){
+      curValue = val;
+      cards.innerHTML = '';
+      const back = document.createElement('button');
+      back.textContent = '← Zurück';
+      back.className   = 'btn btn-logout';
+      back.onclick     = ()=> showList(field);
+      cards.appendChild(back);
+
+      // Filter und sortieren: Hersteller==curMan, dann nach field match, dann nach numerischer Größe
+      const filtered = allData
+        .filter(f=>f.hersteller===curMan)
+        .filter(f=> field==='serie' ? f.serie===val : [f.typ_a,f.typ_b].includes(val))
+        .sort((a,b)=>{
+          const numA = parseInt(a.groesse.replace(/[^0-9]/g,''),10)||0;
+          const numB = parseInt(b.groesse.replace(/[^0-9]/g,''),10)||0;
+          return numA - numB;
         });
 
-      container.style.display = "none";
-      subMenu.style.display = "none";
-      filterMenu.style.display = "none";
-      mainMenu.style.display = "flex";
-    }
-
-    // 8) Submenü: Serien und Typen für einen Hersteller
-    async function loadSubMenu(selectedHersteller) {
-      mainMenu.style.display = "none";
-      const { data, error } = await supabaseClient
-        .from("felle")
-        .select("serie, typ_a, typ_b")
-        .eq("hersteller", selectedHersteller);
-
-      if (error) {
-        console.error(error);
-        return;
-      }
-
-      // Alle Serien und Typen extrahieren
-      const serien = [...new Set(data.map(d => d.serie || ""))].filter(s => s).sort();
-      const typen = [...new Set([...data.map(d => d.typ_a || ""), ...data.map(d => d.typ_b || "")])]
-        .filter(t => t).sort();
-
-      subMenu.innerHTML = "";
-
-      serien.forEach(s => {
-        const btn = document.createElement("button");
-        btn.className = "menu-button";
-        btn.textContent = `Serie: ${s}`;
-        btn.onclick = () => {
-          filterByField("hersteller", selectedHersteller, "serie", s);
-        };
-        subMenu.append(btn);
-      });
-
-      typen.forEach(t => {
-        const btn = document.createElement("button");
-        btn.className = "menu-button";
-        btn.textContent = `Typ: ${t}`;
-        btn.onclick = () => {
-          filterByField("hersteller", selectedHersteller, "typ_a", t);
-        };
-        subMenu.append(btn);
-      });
-
-      const back = document.createElement("button");
-      back.className = "back-button";
-      back.textContent = "Zurück";
-      back.onclick = () => {
-        subMenu.style.display = "none";
-        loadMainMenu();
-      };
-      subMenu.append(back);
-
-      subMenu.style.display = "flex";
-      filterMenu.style.display = "none";
-      container.style.display = "none";
-    }
-
-    // 9) Filterfunktion basierend auf zwei Feldern
-    async function filterByField(field1, val1, field2, val2) {
-      subMenu.style.display = "none";
-      let query = supabaseClient.from("felle").select("*").eq(field1, val1);
-      if (field2 === "typ_a") {
-        query = query.or(`typ_a.eq.${val2},typ_b.eq.${val2}`);
-      } else {
-        query = query.eq(field2, val2);
-      }
-      const { data, error } = await query;
-      if (error) {
-        console.error(error);
-        return;
-      }
-
-      // **Hier sortieren wir nach Hersteller → Serie → numerisch Größe**
-      const sorted = data.sort((a, b) => {
-        const hCmp = a.hersteller.localeCompare(b.hersteller);
-        if (hCmp !== 0) return hCmp;
-        const sCmp = (a.serie || "").localeCompare(b.serie || "");
-        if (sCmp !== 0) return sCmp;
-        const sizeA = parseInt((a.groesse||"").replace(/[^0-9]/g,""),10)||0;
-        const sizeB = parseInt((b.groesse||"").replace(/[^0-9]/g,""),10)||0;
-        return sizeA - sizeB;
-      });
-
-      renderFelle(sorted);
-      container.style.display = "block";
-      filterMenu.style.display = "none";
-    }
-
-    // 10) Alle Felle anzeigen (Standardansicht)
-    async function loadFelle() {
-      const { data, error } = await supabaseClient
-        .from("felle")
-        .select("*");
-      if (error) {
-        console.error(error);
-        return;
-      }
-      allData = data.sort((a, b) => {
-        const hCmp = a.hersteller.localeCompare(b.hersteller);
-        if (hCmp !== 0) return hCmp;
-        const sCmp = (a.serie || "").localeCompare(b.serie || "");
-        if (sCmp !== 0) return sCmp;
-        const sizeA = parseInt((a.groesse||"").replace(/[^0-9]/g,""),10)||0;
-        const sizeB = parseInt((b.groesse||"").replace(/[^0-9]/g,""),10)||0;
-        return sizeA - sizeB;
-      });
-      renderFelle(allData);
-      container.style.display = "block";
-      mainMenu.style.display = "none";
-      subMenu.style.display = "none";
-      filterMenu.style.display = "none";
-    }
-
-    // 11) Karten anzeigen
-    function renderFelle(dataArray) {
-      container.innerHTML = "";
-      dataArray.forEach(fell => {
-        const card = document.createElement("div");
-        card.className = "card";
-        card.innerHTML = `
-          <div class="title">
-            ${fell.hersteller} – ${fell.serie} ${fell.groesse}
-          </div>
-          <div class="wiki">${fell.wiki}</div>
+      filtered.forEach(f=>{
+        const c = document.createElement('div');
+        c.className = 'card';
+        c.innerHTML = `
+          <div class="title">${f.serie} ${f.groesse}</div>
+          <div class="wiki">${f.wiki||''}</div>
           <div class="controls">
-            <div>Bestand: <strong>${fell.bestand}</strong></div>
-            <div>
-              <button class="minus">-1</button>
-              <button class="plus">+1</button>
-            </div>
+            ${adminMode
+              ? `<input class="stock-input" type="number" value="${f.bestand}"
+                    onchange="updateLog('${f.id}',parseInt(this.value,10)-${f.bestand})">`
+              : `<div>Bestand: <strong>${f.bestand}</strong></div>`
+            }
+            <button class="minus" onclick="updateLog('${f.id}',-1)">-1</button>
+            <button class="plus"  onclick="updateLog('${f.id}',+1)">+1</button>
           </div>`;
-        card.querySelector(".minus").onclick = () => updateBestand(fell.id, -1);
-        card.querySelector(".plus").onclick  = () => updateBestand(fell.id, +1);
-        container.append(card);
+        cards.appendChild(c);
       });
     }
 
-    // 12) Bestand aktualisieren
-    async function updateBestand(id, delta) {
-      const { error } = await supabaseClient
-        .from("felle")
-        .update({ bestand: supabaseClient.raw("bestand + ?", [delta]) })
-        .eq("id", id);
-      if (error) {
-        console.error("Update-Fehler:", error);
-        return;
-      }
-      loadFelle();
-    }
+    // Bestand & Historie aktualisieren
+    window.updateLog = async (id, delta) => {
+      if (!delta) return;
+      const f = allData.find(x=>x.id===id);
+      const neu = f.bestand + delta;
+      await sb.from('felle').update({bestand:neu}).eq('id',id);
+      await sb.from('history').insert({fell_id:id,delta});
+      f.bestand = neu;
+      if (curField && curValue) renderCards(curField,curValue);
+      else renderMenu();
+    };
 
-    // Initial: Hauptmenü aufbauen
-    document.addEventListener("DOMContentLoaded", () => {
-      loadMainMenu();
-    });
+    // initial
+    renderMenu();
+
+  });
   </script>
 </body>
 </html>
