@@ -19,8 +19,8 @@
     #adminMenu { margin-top: 1rem; }
     #adminMenu button { margin-right: .5rem; padding: .5rem 1rem; font-size: 1rem; }
   </style>
-  <!-- Supabase-JS via CDN (UMD-Bundle mit korrektem MIME-Type) -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/index.js"></script>
+  <!-- Supabase-JS via Unpkg (funktionierender UMD-Build) -->
+  <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase-js.min.js"></script>
 </head>
 <body>
 
@@ -37,7 +37,7 @@
   </div>
 
   <script>
-    // 1) Supabase-Zugangsdaten (komplett in Anführungszeichen)
+    // 1) Supabase-Zugangsdaten (Anführungszeichen beachten)
     const SUPABASE_URL     = "https://owrfgjypnemsxonmbrpj.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im93cmZnanlwbmVtc3hvbm1icnBqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDczMTUyOTgsImV4cCI6MjA2Mjg5MTI5OH0.X1PymyDZqNe_Plmao8U6gdqFKP70VrFtuZTesgyZMwg";
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -65,13 +65,10 @@
 
       // Sortierung: Hersteller → Serie → numerisch nach Größe
       allData = data.sort((a, b) => {
-        // 1) Hersteller alphabetisch
         const hCmp = a.hersteller.localeCompare(b.hersteller);
         if (hCmp !== 0) return hCmp;
-        // 2) Serie alphabetisch
         const sCmp = (a.serie || "").localeCompare(b.serie || "");
         if (sCmp !== 0) return sCmp;
-        // 3) Größe numerisch (z.B. "14")
         const sizeA = parseInt((a.groesse || "").replace(/[^0-9]/g, ""), 10) || 0;
         const sizeB = parseInt((b.groesse || "").replace(/[^0-9]/g, ""), 10) || 0;
         return sizeA - sizeB;
@@ -97,7 +94,6 @@
             </div>
           </div>`;
 
-        // Button-Handler
         card.querySelector(".minus").onclick = () => updateBestand(fell.id, -1);
         card.querySelector(".plus").onclick  = () => updateBestand(fell.id, +1);
 
@@ -122,14 +118,10 @@
     function exportAsCSV() {
       if (!allData.length) return;
 
-      // Kopie und Sortierung nach id (alphabetisch)
       const rows = [...allData].sort((a, b) => a.id.localeCompare(b.id));
-
-      // CSV-Header
       const header = ["id","hersteller","serie","groesse","bestand","warnschwelle","wiki","typ_a","typ_b"];
       const csvRows = [header.join(",")];
 
-      // Datenzeilen bauen
       rows.forEach(f => {
         const values = [
           f.id,
@@ -149,7 +141,6 @@
       const blob = new Blob([csvString], { type: "text/csv;charset=utf-8;" });
       const url = URL.createObjectURL(blob);
 
-      // Aktuelles Datum und Uhrzeit
       const now = new Date();
       const dd = String(now.getDate()).padStart(2,'0');
       const mm = String(now.getMonth()+1).padStart(2,'0');
@@ -158,7 +149,6 @@
       const min= String(now.getMinutes()).padStart(2,'0');
       const filename = `Fellbestand_${dd}.${mm}.${yy}_${hh}-${min}.csv`;
 
-      // Download-Link erzeugen
       const link = document.createElement("a");
       link.setAttribute("href", url);
       link.setAttribute("download", filename);
