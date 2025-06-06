@@ -193,7 +193,7 @@
 
     // Supabase-Zugangsdaten
     const SUPABASE_URL     = "https://owrfgjypnemsxonmbrpj.supabase.co";
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im93cmZnanlwbmVtc3hvbm1icnBqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDczMTUyOTgsImV4cCI6MjA2Mjg5MTI5OH0.X1PymyDZqNe_Plmao8U6gdqFKP70VrFtuZTesgyZMwg";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhbmFzZSIsInJlZiI6Im93cmZnanlwbmVtc3hvbm1icnBqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDczMTUyOTgsImV4cCI6MjA2Mjg5MTI5OH0.X1PymyDZqNe_Plmao8U6gdqFKP70VrFtuZTesgyZMwg";
     const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     // DOM-Elemente
@@ -238,7 +238,6 @@
 
     // 2) Einstellungen öffnen
     btnSettings.onclick = async () => {
-      // Lade aktuelle Settings aus Supabase (Tabelle 'settings', id = 'global')
       const { data, error } = await supabaseClient
         .from("settings")
         .select("warnschwelle,tolerance,email_to")
@@ -247,7 +246,6 @@
       if (!error && data) {
         settings = data;
       }
-      // Fülle Input-Felder
       inpWarn.value = settings.warnschwelle;
       inpTol.value = settings.tolerance;
       inpMail.value = settings.email_to;
@@ -342,22 +340,28 @@
 
     // 7) Hauptmenü (Hersteller-Liste) anzeigen
     async function loadMainMenu() {
+      // Distinct-Abfrage für Hersteller
       const { data, error } = await supabaseClient
         .from("felle")
-        .select("hersteller")
-        .distinct();
+        .select("hersteller", { distinct: true });
+
       if (error) {
-        console.error(error);
+        console.error("Fehler beim Laden der Hersteller:", error);
         return;
       }
+
       mainMenu.innerHTML = "";
-      data.sort((a, b) => a.hersteller.localeCompare(b.hersteller)).forEach(entry => {
-        const btn = document.createElement("button");
-        btn.className = "menu-button";
-        btn.textContent = entry.hersteller;
-        btn.onclick = () => loadSubMenu(entry.hersteller);
-        mainMenu.append(btn);
-      });
+      data
+        .map(entry => entry.hersteller)
+        .sort((a, b) => a.localeCompare(b))
+        .forEach(herstellerName => {
+          const btn = document.createElement("button");
+          btn.className = "menu-button";
+          btn.textContent = herstellerName;
+          btn.onclick = () => loadSubMenu(herstellerName);
+          mainMenu.append(btn);
+        });
+
       container.style.display = "none";
       subMenu.style.display = "none";
       filterMenu.style.display = "none";
@@ -371,17 +375,19 @@
         .from("felle")
         .select("serie, typ_a, typ_b")
         .eq("hersteller", selectedHersteller);
+
       if (error) {
         console.error(error);
         return;
       }
-      // Alle Serien (distinct) und Typen (distinct) sammeln
+
+      // Alle Serien und Typen extrahieren
       const serien = [...new Set(data.map(d => d.serie || ""))].filter(s => s).sort();
       const typen = [...new Set([...data.map(d => d.typ_a || ""), ...data.map(d => d.typ_b || "")])]
-                   .filter(t => t).sort();
+        .filter(t => t).sort();
 
       subMenu.innerHTML = "";
-      // Serien-Buttons
+
       serien.forEach(s => {
         const btn = document.createElement("button");
         btn.className = "menu-button";
@@ -391,7 +397,7 @@
         };
         subMenu.append(btn);
       });
-      // Typ-Buttons
+
       typen.forEach(t => {
         const btn = document.createElement("button");
         btn.className = "menu-button";
@@ -401,7 +407,7 @@
         };
         subMenu.append(btn);
       });
-      // Zurück-Button
+
       const back = document.createElement("button");
       back.className = "back-button";
       back.textContent = "Zurück";
@@ -421,7 +427,6 @@
       subMenu.style.display = "none";
       let query = supabaseClient.from("felle").select("*").eq(field1, val1);
       if (field2 === "typ_a") {
-        // Suche in typ_a oder typ_b
         query = query.or(`typ_a.eq.${val2},typ_b.eq.${val2}`);
       } else {
         query = query.eq(field2, val2);
@@ -431,10 +436,20 @@
         console.error(error);
         return;
       }
-      renderFelle(data);
-      container.style.display = "block";
 
-      // Filter-Menü als einfache Anzeige (keine weiteren Filter)
+      // **Hier sortieren wir nach Hersteller → Serie → numerisch Größe**
+      const sorted = data.sort((a, b) => {
+        const hCmp = a.hersteller.localeCompare(b.hersteller);
+        if (hCmp !== 0) return hCmp;
+        const sCmp = (a.serie || "").localeCompare(b.serie || "");
+        if (sCmp !== 0) return sCmp;
+        const sizeA = parseInt((a.groesse||"").replace(/[^0-9]/g,""),10)||0;
+        const sizeB = parseInt((b.groesse||"").replace(/[^0-9]/g,""),10)||0;
+        return sizeA - sizeB;
+      });
+
+      renderFelle(sorted);
+      container.style.display = "block";
       filterMenu.style.display = "none";
     }
 
@@ -447,7 +462,6 @@
         console.error(error);
         return;
       }
-      // Sortiere: Hersteller → Serie → numerisch nach Größe
       allData = data.sort((a, b) => {
         const hCmp = a.hersteller.localeCompare(b.hersteller);
         if (hCmp !== 0) return hCmp;
@@ -498,11 +512,10 @@
         console.error("Update-Fehler:", error);
         return;
       }
-      // Nach Update neu laden (Standard-Ansicht)
       loadFelle();
     }
 
-    // Eventlistener für Menüs
+    // Initial: Hauptmenü aufbauen
     document.addEventListener("DOMContentLoaded", () => {
       loadMainMenu();
     });
