@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <title>Fellmanager</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body { max-width: 700px; margin: 2rem auto; font-family: sans-serif; }
+    .card { border: 1px solid #ccc; border-radius: 1rem; padding: 1rem; margin-bottom: 1rem; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+    .header { font-size: 24px; font-weight: bold; text-align: center; margin-bottom: 1rem; }
+    .title { font-size: 18px; font-weight: bold; }
+    .wiki  { font-size: 14px; color: #555; margin: .5rem 0; }
+    .controls { display: flex; justify-content: space-between; align-items: center; }
+    .controls button { border: none; color: white; padding: .5rem 1rem; border-radius: 5px; cursor: pointer; font-size: 1rem; }
+    .minus { background: #e53e3e; margin-right: .5rem; }
+    .plus  { background: #38a169; }
+
+    /* Admin-Menü */
+    #adminMenu { margin-top: 1rem; }
+    #adminMenu button { margin-right: .5rem; padding: .5rem 1rem; font-size: 1rem; }
+  </style>
+  <!-- Supabase-JS via CDN (UMD-Bundle mit korrektem MIME-Type) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/index.js"></script>
+</head>
+<body>
+
+  <div class="header">Fellmanager</div>
+
+  <!-- Container für die Kartenliste -->
+  <div id="container">Lade Daten...</div>
+
+  <!-- Admin-Menü (nur im Admin-Modus sichtbar) -->
+  <div id="adminMenu" style="display:none;">
+    <button id="btnExportCSV">Export als CSV</button>
+    <input type="file" id="fileInput" accept=".csv" style="display:none;">
+    <button id="btnImportCSV">Import CSV</button>
+  </div>
+
+  <script>
+    // 1) Supabase-Zugangsdaten (komplett in Anführungszeichen)
+    const SUPABASE_URL     = "https://owrfgjypnemsxonmbrpj.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im93cmZnanlwbmVtc3hvbm1icnBqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDczMTUyOTgsImV4cCI6MjA2Mjg5MTI5OH0.X1PymyDZqNe_Plmao8U6gdqFKP70VrFtuZTesgyZMwg";
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const container = document.getElementById("container");
+    const adminMenu = document.getElementById("adminMenu");
+    const btnExportCSV = document.getElementById("btnExportCSV");
+    const btnImportCSV = document.getElementById("btnImportCSV");
+    const fileInput = document.getElementById("fileInput");
+
+    let allData = [];
+    let isAdmin = false;
+
+    // 2) Daten laden, sortieren und anzeigen
+    async function loadFelle() {
+      const { data, error } = await supabaseClient
+        .from("felle")
+        .select("*");
+
+      if (error) {
+        console.error(error);
+        container.innerHTML = "<p style='color:red'>Fehler beim Laden der Daten.</p>";
+        return;
+      }
+
+      // Sortierung: Hersteller → Serie → numerisch nach Größe
+      allData = data.sort((a, b) => {
+        // 1) Hersteller alphabetisch
+        const hCmp = a.hersteller.localeCompare(b.hersteller);
+        if (hCmp !== 0) return hCmp;
+        // 2) Serie alphabetisch
+        const sCmp = (a.serie || "").localeCompare(b.serie || "");
+        if (sCmp !== 0) return sCmp;
+        // 3) Größe numerisch (z.B. "14")
+        const sizeA = parseInt((a.groesse || "").replace(/[^0-9]/g, ""), 10) || 0;
+        const sizeB = parseInt((b.groesse || "").replace(/[^0-9]/g, ""), 10) || 0;
+        return sizeA - sizeB;
+      });
+
+      renderFelle(allData);
+    }
+
+    // 3) Karten anzeigen
+    function renderFelle(dataArray) {
+      container.innerHTML = "";
+      dataArray.forEach(fell => {
+        const card = document.createElement("div");
+        card.className = "card";
+        card.innerHTML = `
+          <div class="title">${fell.id} – ${fell.hersteller} ${fell.serie} ${fell.groesse}</div>
+          <div class="wiki">${fell.wiki}</div>
+          <div class="controls">
+            <div>Bestand: <strong>${fell.bestand}</strong></div>
+            <div>
+              <button class="minus">-1</button>
+              <button class="plus">+1</button>
+            </div>
+          </div>`;
+
+        // Button-Handler
+        card.querySelector(".minus").onclick = () => updateBestand(fell.id, -1);
+        card.querySelector(".plus").onclick  = () => updateBestand(fell.id, +1);
+
+        container.append(card);
+      });
+    }
+
+    // 4) Bestand aktualisieren
+    async function updateBestand(id, delta) {
+      const { error } = await supabaseClient
+        .from("felle")
+        .update({ bestand: supabaseClient.raw("bestand + ?", [delta]) })
+        .eq("id", id);
+      if (error) {
+        console.error("Update-Fehler:", error);
+        return;
+      }
+      await loadFelle();
+    }
+
+    // 5) Export als CSV (alphabetisch nach id, plus Datum+Uhrzeit im Dateinamen)
+    function exportAsCSV() {
+      if (!allData.length) return;
+
+      // Kopie und Sortierung nach id (alphabetisch)
+      const rows = [...allData].sort((a, b) => a.id.localeCompare(b.id));
+
+      // CSV-Header
+      const header = ["id","hersteller","serie","groesse","bestand","warnschwelle","wiki","typ_a","typ_b"];
+      const csvRows = [header.join(",")];
+
+      // Datenzeilen bauen
+      rows.forEach(f => {
+        const values = [
+          f.id,
+          f.hersteller,
+          f.serie,
+          f.groesse,
+          f.bestand,
+          f.warnschwelle,
+          `"${f.wiki.replace(/"/g,'""')}"`,
+          f.typ_a,
+          f.typ_b
+        ];
+        csvRows.push(values.join(","));
+      });
+
+      const csvString = csvRows.join("\n");
+      const blob = new Blob([csvString], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+
+      // Aktuelles Datum und Uhrzeit
+      const now = new Date();
+      const dd = String(now.getDate()).padStart(2,'0');
+      const mm = String(now.getMonth()+1).padStart(2,'0');
+      const yy = now.getFullYear();
+      const hh = String(now.getHours()).padStart(2,'0');
+      const min= String(now.getMinutes()).padStart(2,'0');
+      const filename = `Fellbestand_${dd}.${mm}.${yy}_${hh}-${min}.csv`;
+
+      // Download-Link erzeugen
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", filename);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    // 6) CSV-Import
+    function handleFileImport(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = async function(e) {
+        const text = e.target.result;
+        const lines = text.split(/\r?\n/).filter(l => l.trim());
+        const header = lines.shift().split(",");
+        const idIdx = header.indexOf("id");
+        const bestandIdx = header.indexOf("bestand");
+
+        for (let line of lines) {
+          const cols = line.split(",");
+          const id = cols[idIdx];
+          const bestand = parseInt(cols[bestandIdx],10);
+          if (!id) continue;
+          await supabaseClient
+            .from("felle")
+            .update({ bestand })
+            .eq("id", id);
+        }
+        await loadFelle();
+      };
+      reader.readAsText(file);
+    }
+
+    // 7) Admin-Modus umschalten
+    function toggleAdmin() {
+      isAdmin = !isAdmin;
+      adminMenu.style.display = isAdmin ? "block" : "none";
+    }
+
+    // Eventlistener
+    btnExportCSV.onclick = exportAsCSV;
+    btnImportCSV.onclick = () => fileInput.click();
+    fileInput.onchange = handleFileImport;
+
+    // Initial aufrufen
+    loadFelle();
+
+    // Admin-Modus per "Ctrl+M" umschalten
+    document.addEventListener("keydown", e => {
+      if (e.ctrlKey && e.key==="m") {
+        toggleAdmin();
+      }
+    });
+  </script>
+</body>
+</html>
